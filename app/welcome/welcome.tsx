@@ -3,7 +3,7 @@ export function Welcome() {
     <main className="h-screen w-full flex items-center justify-center">
       <div className="flex flex-col items-center gap-10">
         
-        <h1 className="text-5xl font-mono tracking-wide text-black font-hand">
+        <h1 className="text-5xl tracking-wide text-black font-hand">
           Welcome to PDF Editor
         </h1>
 
