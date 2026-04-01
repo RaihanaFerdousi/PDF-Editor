@@ -1,4 +1,16 @@
+import { useNavigate } from "react-router";
+
 export function Welcome() {
+  const navigate = useNavigate();
+
+  const handleImport = (e: React.ChangeEvent<HTMLInputElement>) => {
+    const file = e.target.files?.[0];
+    if (!file) return;
+
+    const url = URL.createObjectURL(file);
+    navigate('/editor', { state: { fileUrl: url } });
+  };
+
   return (
     <main className="h-screen w-full flex items-center justify-center">
       <div className="flex flex-col items-center gap-10">
@@ -15,6 +27,7 @@ export function Welcome() {
               type="file"
               accept="application/pdf"
               className="hidden"
+              onChange={handleImport}
             />
           </label>
 
