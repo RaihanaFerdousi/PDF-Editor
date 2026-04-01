@@ -1,5 +1,6 @@
 import { useRef, useState, useEffect } from 'react';
 import { Canvas as FabricCanvas } from 'fabric';
+import Toolbar from './Toolbar';
 
 export default function Canvas() {
   const canvasRef = useRef<HTMLCanvasElement | null>(null);
@@ -25,6 +26,7 @@ export default function Canvas() {
   return (
     <div>
       <canvas ref={canvasRef} />
+      <Toolbar/>
     </div>
   );
 }
