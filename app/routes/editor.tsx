@@ -11,18 +11,21 @@ import { Canvas as FabricCanvas } from "fabric";
 export default function Editor() {
   const location = useLocation();
   const [fileUrl, setFileUrl] = useState(location.state?.fileUrl);
-
   const canvasRef = useRef<HTMLCanvasElement | null>(null);
   const [canvas, setCanvas] = useState<FabricCanvas | null>(null);
+
+  const plugin = thumbnailPlugin();
+  const { Thumbnails } = plugin;
 
   useEffect(() => {
     if (canvasRef.current) {
       const initCanvas = new FabricCanvas(canvasRef.current, {
         width: 794,
         height: 1123,
+        backgroundColor: 'transparent',
       });
 
-      initCanvas.backgroundColor = "white";
+      initCanvas.backgroundColor = "transparent";
       initCanvas.renderAll();
       setCanvas(initCanvas);
 
@@ -49,8 +52,44 @@ export default function Editor() {
     });
   }, [fileUrl]);
 
-  const plugin = thumbnailPlugin();
-  const { Thumbnails } = plugin;
+  const exportPdf = async () => {
+    console.log('exportPdf called', { fileUrl, canvas });
+
+    if (!fileUrl || !canvas) {
+      alert('Export not available yet: file or canvas missing.');
+      return;
+    }
+
+    try {
+      const existingPdfBytes = await fetch(fileUrl).then(res => res.arrayBuffer());
+      const pdfDoc = await PDFDocument.load(existingPdfBytes);
+
+      const canvasDataUrl = canvas.toDataURL({ format: 'png', multiplier: 1, quality: 1.0 });
+      const pngBytes = await fetch(canvasDataUrl).then(res => res.arrayBuffer());
+      const pngImage = await pdfDoc.embedPng(pngBytes);
+
+      const pages = pdfDoc.getPages();
+      const targetPage = pages[pages.length - 1];
+
+      targetPage.drawImage(pngImage, {
+        x: 0,
+        y: 0,
+        width: targetPage.getWidth(),
+        height: targetPage.getHeight(),
+      });
+
+      const pdfBytes = await pdfDoc.save();
+      const pdfBytesNormalized = new Uint8Array(pdfBytes);
+      const blob = new Blob([pdfBytesNormalized], { type: 'application/pdf' });
+      const link = document.createElement('a');
+      link.href = URL.createObjectURL(blob);
+      link.download = 'edited.pdf';
+      link.click();
+    } catch (err) {
+      console.error('exportPdf failed', err);
+      alert('Export failed: ' + (err instanceof Error ? err.message : String(err)));
+    }
+  };
 
   const addPage = async () => {
     if (!fileUrl) return;
@@ -95,7 +134,7 @@ export default function Editor() {
           )}
         </div>
       </div>
-      <Toolbar canvas={canvas} onAddPage={addPage} />
+      <Toolbar canvas={canvas} onAddPage={addPage} onExport={exportPdf} />
 
     </div>
   );

@@ -20,6 +20,7 @@ import {
 interface ToolbarProps {
     canvas?: FabricCanvas | null;
     onAddPage?: () => void | Promise<void>;
+    onExport?: () => void | Promise<void>;
 }
 
 interface ToolButtonProps {
@@ -49,113 +50,117 @@ const ToolButton: React.FC<ToolButtonProps> = ({ icon: Icon, label, isActive = f
     </button>
 );
 
-export default function Toolbar({ canvas, onAddPage }: ToolbarProps): JSX.Element {
+export default function Toolbar({ canvas, onAddPage, onExport }: ToolbarProps): JSX.Element {
     const [isShapesOpen, setIsShapesOpen] = useState(false);
 
     const disableDrawing = () => {
-    if (canvas) {
-      canvas.isDrawingMode = false;
-    }
-  };
-
-  const addCircle = () => {
-    if (!canvas) return;
-    disableDrawing();
-
-    const circle = new FabricCircle({
-    });
-
-    canvas.add(circle);
-    canvas.renderAll();
-  }
-
-  const addSquare = () => {
-    if (!canvas) return;
-    disableDrawing();
-    const square = new Rect({
-      left: 300,
-      top: 150,
-      fill: 'blue',
-      width: 100,
-      height: 100
-    });
-    canvas.add(square);
-    canvas.renderAll();
-  }
-
-  const addStar = () => {
-    if (!canvas) return;
-    disableDrawing();
-
-    const points = [];
-    const numPoints = 5;
-    const outerRadius = 50;
-    const innerRadius = 25;
-    const centerX = 0;
-    const centerY = 0;
-
-    for (let i = 0; i < numPoints * 2; i++) {
-      const radius = i % 2 === 0 ? outerRadius : innerRadius;
-      const angle = (Math.PI * i) / numPoints;
-      points.push({
-        x: centerX + radius * Math.sin(angle),
-        y: centerY - radius * Math.cos(angle),
-      });
-    }
-
-    const star = new Polygon(points, {
-      left: 450,
-      top: 150,
-      fill: 'gold',
-      strokeWidth: 2,
-    });
-
-    canvas.add(star);
-    canvas.renderAll();
-  };
-
-  const addTriangle = () => {
-    if (!canvas) return;
-    disableDrawing();
-
-    const triangle = new FabricTriangle({
-      height: 100
-    });
-
-    canvas.add(triangle);
-    canvas.renderAll();
-  }
-
-  const addText = () => {
-    if (!canvas) return;
-    disableDrawing();
-
-    const text = new IText('text', {
-      left: 900,
-      top: 150,
-      fontFamily: 'Arial',
-      fontSize: 20,
-      fill: 'black',
-    });
-
-    canvas.add(text);
-    canvas.setActiveObject(text);
-    canvas.renderAll();
-  };
-
-  const freeHandDrawing = () => {
-    if (!canvas) return;
-
-    canvas.isDrawingMode = !canvas.isDrawingMode;
-
-    if (canvas.isDrawingMode) {
-      canvas.freeDrawingBrush = new PencilBrush(canvas);
-      canvas.freeDrawingBrush.color = 'black';
-      canvas.freeDrawingBrush.width = 5;
+        if (canvas) {
+            canvas.isDrawingMode = false;
+        }
     };
 
-    canvas.renderAll();
-  };
+    const addCircle = () => {
+        if (!canvas) return;
+        disableDrawing();
+
+        const circle = new FabricCircle({
+            left: 200,
+            top: 150,
+            radius: 50,
+            fill: 'purple',
+        });
+
+        canvas.add(circle);
+        canvas.renderAll();
+    }
+
+    const addSquare = () => {
+        if (!canvas) return;
+        disableDrawing();
+        const square = new Rect({
+            left: 300,
+            top: 150,
+            fill: 'blue',
+            width: 100,
+            height: 100
+        });
+        canvas.add(square);
+        canvas.renderAll();
+    }
+
+    const addStar = () => {
+        if (!canvas) return;
+        disableDrawing();
+
+        const points = [];
+        const numPoints = 5;
+        const outerRadius = 50;
+        const innerRadius = 25;
+        const centerX = 0;
+        const centerY = 0;
+
+        for (let i = 0; i < numPoints * 2; i++) {
+            const radius = i % 2 === 0 ? outerRadius : innerRadius;
+            const angle = (Math.PI * i) / numPoints;
+            points.push({
+                x: centerX + radius * Math.sin(angle),
+                y: centerY - radius * Math.cos(angle),
+            });
+        }
+
+        const star = new Polygon(points, {
+            left: 450,
+            top: 150,
+            fill: 'gold',
+            strokeWidth: 2,
+        });
+
+        canvas.add(star);
+        canvas.renderAll();
+    };
+
+    const addTriangle = () => {
+        if (!canvas) return;
+        disableDrawing();
+
+        const triangle = new FabricTriangle({
+            height: 100
+        });
+
+        canvas.add(triangle);
+        canvas.renderAll();
+    }
+
+    const addText = () => {
+        if (!canvas) return;
+        disableDrawing();
+
+        const text = new IText('text', {
+            left: 900,
+            top: 150,
+            fontFamily: 'Arial',
+            fontSize: 20,
+            fill: 'black',
+        });
+
+        canvas.add(text);
+        canvas.setActiveObject(text);
+        canvas.renderAll();
+    };
+
+    const freeHandDrawing = () => {
+        if (!canvas) return;
+
+        canvas.isDrawingMode = !canvas.isDrawingMode;
+
+        if (canvas.isDrawingMode) {
+            canvas.freeDrawingBrush = new PencilBrush(canvas);
+            canvas.freeDrawingBrush.color = 'black';
+            canvas.freeDrawingBrush.width = 5;
+        };
+
+        canvas.renderAll();
+    };
 
     return (
         <nav className="fixed top-0 left-0 w-full bg-white border-b border-gray-200 shadow-sm z-50 select-none">
@@ -220,6 +225,7 @@ export default function Toolbar({ canvas, onAddPage }: ToolbarProps): JSX.Elemen
 
                     <button
                         type="button"
+                        onClick={onExport}
                         className="flex items-center gap-2 bg-black text-white px-5 py-2.5 rounded-xl transition-all active:scale-95 shadow-md cursor-pointer hover:bg-gray-800"
                     >
                         <Download size={18} />

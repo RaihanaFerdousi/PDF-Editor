@@ -15,9 +15,8 @@ body {
   }
 }
 
-/* Add vertical spacing between pages in React PDF Viewer */
+
 .rpv-core__viewer .rpv-core__page {
   margin-bottom: 20px;
 }
-
 
