@@ -5,137 +5,274 @@ import "@react-pdf-viewer/thumbnail/lib/styles/index.css";
 import { useEffect, useRef, useState } from "react";
 import { PDFDocument } from "pdf-lib";
 import Toolbar from "~/Components/Toolbar";
-import { Canvas as FabricCanvas } from "fabric";
 
+import {
+  Stage,
+  Layer,
+  Rect,
+  Circle,
+  Line,
+  Text,
+  Image as KonvaImage,
+} from "react-konva";
 
 export default function Editor() {
   const location = useLocation();
   const [fileUrl, setFileUrl] = useState(location.state?.fileUrl);
-  const canvasRef = useRef<HTMLCanvasElement | null>(null);
-  const [canvas, setCanvas] = useState<FabricCanvas | null>(null);
 
   const plugin = thumbnailPlugin();
   const { Thumbnails } = plugin;
 
-  useEffect(() => {
-    if (canvasRef.current) {
-      const initCanvas = new FabricCanvas(canvasRef.current, {
-        width: 794,
-        height: 1123,
-        backgroundColor: 'transparent',
-      });
+  const stageRef = useRef<any>(null);
 
-      initCanvas.backgroundColor = "transparent";
-      initCanvas.renderAll();
-      setCanvas(initCanvas);
+  // ✅ PER PAGE STATE
+  const [pages, setPages] = useState<any[][]>([[]]);
+  const [currentPage, setCurrentPage] = useState(0);
 
-      return () => {
-        initCanvas.dispose();
-      };
-    }
-  }, []);
+  const [tool, setTool] = useState<string | null>(null);
+  const [isDrawing, setIsDrawing] = useState(false);
 
   useEffect(() => {
     if (fileUrl) return;
 
-    const createBlankPdf = async () => {
+    (async () => {
       const pdfDoc = await PDFDocument.create();
       pdfDoc.addPage([595, 842]);
       const pdfBytes = await pdfDoc.save();
-      const newBlob = new Blob([new Uint8Array(pdfBytes)], { type: "application/pdf" });
-      const newUrl = URL.createObjectURL(newBlob);
-      setFileUrl(newUrl);
-    };
-
-    createBlankPdf().catch((err) => {
-      console.error("Failed to create blank PDF", err);
-    });
+      const blob = new Blob([pdfBytes], { type: "application/pdf" });
+      setFileUrl(URL.createObjectURL(blob));
+    })();
   }, [fileUrl]);
 
+  const updateCurrentPage = (newElements: any[]) => {
+    setPages((prev) => {
+      const copy = [...prev];
+      copy[currentPage] = newElements;
+      return copy;
+    });
+  };
+
+  const handleMouseDown = (e: any) => {
+    if (tool !== "draw") return;
+
+    setIsDrawing(true);
+    const pos = e.target.getStage().getPointerPosition();
+
+    updateCurrentPage([
+      ...(pages[currentPage] || []),
+      {
+        type: "line",
+        points: [pos.x, pos.y],
+        stroke: "black",
+        strokeWidth: 2,
+      },
+    ]);
+  };
+
+  const handleMouseMove = (e: any) => {
+    if (!isDrawing) return;
+
+    const point = e.target.getStage().getPointerPosition();
+    const current = pages[currentPage] || [];
+    const last = current[current.length - 1];
+
+    if (!last) return;
+
+    last.points = last.points.concat([point.x, point.y]);
+
+    updateCurrentPage([...current.slice(0, -1), last]);
+  };
+
+  const handleMouseUp = () => setIsDrawing(false);
+
+  const addText = () => {
+    setTool("text");
+    updateCurrentPage([
+      ...(pages[currentPage] || []),
+      { type: "text", x: 100, y: 100, text: "Edit me", fontSize: 20 },
+    ]);
+  };
+
+  const addRect = () => {
+    setTool("rect");
+    updateCurrentPage([
+      ...(pages[currentPage] || []),
+      { type: "rect", x: 100, y: 100, width: 100, height: 100, fill: "blue" },
+    ]);
+  };
+
+  const addCircle = () => {
+    setTool("circle");
+    updateCurrentPage([
+      ...(pages[currentPage] || []),
+      { type: "circle", x: 150, y: 150, radius: 50, fill: "green" },
+    ]);
+  };
+
+  const addTriangle = () => {
+    setTool("triangle");
+    updateCurrentPage([
+      ...(pages[currentPage] || []),
+      {
+        type: "line",
+        points: [200, 200, 250, 300, 150, 300, 200, 200],
+        fill: "purple",
+        closed: true,
+      },
+    ]);
+  };
+
+  const handleImageUpload = (file: File) => {
+    const url = URL.createObjectURL(file);
+    const img = new window.Image();
+    img.src = url;
+
+    img.onload = () => {
+      updateCurrentPage([
+        ...(pages[currentPage] || []),
+        {
+          type: "image",
+          image: img,
+          x: 100,
+          y: 100,
+          width: 150,
+          height: 150,
+        },
+      ]);
+    };
+  };
+
+  const eraseLast = () => {
+    const current = pages[currentPage] || [];
+    updateCurrentPage(current.slice(0, -1));
+  };
+
   const exportPdf = async () => {
-    console.log('exportPdf called', { fileUrl, canvas });
+    if (!fileUrl) return;
 
-    if (!fileUrl || !canvas) {
-      alert('Export not available yet: file or canvas missing.');
-      return;
-    }
+    const bytes = await fetch(fileUrl).then((res) => res.arrayBuffer());
+    const pdfDoc = await PDFDocument.load(bytes);
 
-    try {
-      const existingPdfBytes = await fetch(fileUrl).then(res => res.arrayBuffer());
-      const pdfDoc = await PDFDocument.load(existingPdfBytes);
+    const pdfPages = pdfDoc.getPages();
 
-      const canvasDataUrl = canvas.toDataURL({ format: 'png', multiplier: 1, quality: 1.0 });
-      const pngBytes = await fetch(canvasDataUrl).then(res => res.arrayBuffer());
+    for (let i = 0; i < pages.length; i++) {
+      const uri = stageRef.current.toDataURL();
+      const pngBytes = await fetch(uri).then((res) => res.arrayBuffer());
       const pngImage = await pdfDoc.embedPng(pngBytes);
 
-      const pages = pdfDoc.getPages();
-      const targetPage = pages[pages.length - 1];
+      const page = pdfPages[i];
 
-      targetPage.drawImage(pngImage, {
+      page.drawImage(pngImage, {
         x: 0,
         y: 0,
-        width: targetPage.getWidth(),
-        height: targetPage.getHeight(),
+        width: page.getWidth(),
+        height: page.getHeight(),
       });
-
-      const pdfBytes = await pdfDoc.save();
-      const pdfBytesNormalized = new Uint8Array(pdfBytes);
-      const blob = new Blob([pdfBytesNormalized], { type: 'application/pdf' });
-      const link = document.createElement('a');
-      link.href = URL.createObjectURL(blob);
-      link.download = 'edited.pdf';
-      link.click();
-    } catch (err) {
-      console.error('exportPdf failed', err);
-      alert('Export failed: ' + (err instanceof Error ? err.message : String(err)));
     }
+
+    const finalBytes = await pdfDoc.save();
+    const blob = new Blob([finalBytes], { type: "application/pdf" });
+
+    const link = document.createElement("a");
+    link.href = URL.createObjectURL(blob);
+    link.download = "edited.pdf";
+    link.click();
   };
 
   const addPage = async () => {
     if (!fileUrl) return;
 
-    const existingPdfBytes = await fetch(fileUrl).then(res => res.arrayBuffer());
-    const pdfDoc = await PDFDocument.load(existingPdfBytes);
+    const bytes = await fetch(fileUrl).then((res) => res.arrayBuffer());
+    const pdfDoc = await PDFDocument.load(bytes);
 
     pdfDoc.addPage([595, 842]);
 
-    const pdfBytes = await pdfDoc.save();
+    const newBytes = await pdfDoc.save();
+    setFileUrl(URL.createObjectURL(new Blob([newBytes])));
 
-    const newBlob = new Blob([new Uint8Array(pdfBytes)], { type: "application/pdf" });
-    const newUrl = URL.createObjectURL(newBlob);
-
-    setFileUrl(newUrl);
+    setPages((prev) => [...prev, []]);
   };
+
+  const handlePageChange = (e: any) => {
+    const pageIndex = e.currentPage;
+
+    setCurrentPage(pageIndex);
+
+    setPages((prev) => {
+      if (!prev[pageIndex]) {
+        const copy = [...prev];
+        copy[pageIndex] = [];
+        return copy;
+      }
+      return prev;
+    });
+  };
+
   return (
     <div className="bg-gray-50 min-h-screen">
+      <Toolbar
+        onText={addText}
+        onDraw={() => setTool("draw")}
+        onRect={addRect}
+        onCircle={addCircle}
+        onTriangle={addTriangle}
+        onImageUpload={handleImageUpload}
+        onErase={eraseLast}
+        onAddPage={addPage}
+        onExport={exportPdf}
+      />
+
       <div className="pt-24 pb-12 px-4 md:px-8">
         <div className="max-w-7xl mx-auto">
           {fileUrl && (
             <Worker workerUrl="https://unpkg.com/pdfjs-dist@3.11.174/build/pdf.worker.min.js">
               <div className="flex">
-                <div className="w-48 bg-white rounded-r-md border-r-2 flex-shrink-0 sticky top-24 max-h-[calc(100vh-6rem)] border-gray-300 overflow-y-auto p-2">
+                <div className="w-48 bg-white border-r p-2">
                   <Thumbnails />
                 </div>
 
-                <div className="flex-1 overflow-hidden relative ml-4">
+                <div className="flex-1 relative ml-4">
                   <Viewer
                     fileUrl={fileUrl}
                     plugins={[plugin]}
+                    onPageChange={handlePageChange}
                   />
 
-                  <canvas
-                    ref={canvasRef}
-                    className="absolute top-0 left-0 pointer-events-none"
-                  />
+                  <Stage
+                    key={currentPage} 
+                    width={800}
+                    height={1000}
+                    ref={stageRef}
+                    className="absolute top-0 left-0 z-10"
+                    onMouseDown={handleMouseDown}
+                    onMouseMove={handleMouseMove}  
+                    onMouseUp={handleMouseUp}     
+                  >
+                    <Layer>
+                      {(pages[currentPage] || []).map((el, i) => {
+                        switch (el.type) {
+                          case "rect":
+                            return <Rect key={i} {...el} draggable />;
+                          case "circle":
+                            return <Circle key={i} {...el} draggable />;
+                          case "text":
+                            return <Text key={i} {...el} draggable />;
+                          case "line":
+                            return <Line key={i} {...el} />;
+                          case "image":
+                            return <KonvaImage key={i} {...el} draggable />;
+                          default:
+                            return null;
+                        }
+                      })}
+                    </Layer>
+                  </Stage>
                 </div>
-
               </div>
             </Worker>
           )}
         </div>
       </div>
-      <Toolbar canvas={canvas} onAddPage={addPage} onExport={exportPdf} />
-
     </div>
   );
 }
