@@ -31,7 +31,6 @@ export default function Editor() {
   const [tool, setTool] = useState<string | null>(null);
   const [isDrawing, setIsDrawing] = useState(false);
   const [selectedIndex, setSelectedIndex] = useState<number | null>(null);
-  const [selectedElement, setSelectedElement] = useState<any>(null);
 
   useEffect(() => {
     if (fileUrl) return;
