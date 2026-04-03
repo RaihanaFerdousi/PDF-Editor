@@ -2,7 +2,7 @@ import { Viewer, Worker } from "@react-pdf-viewer/core";
 import { thumbnailPlugin } from "@react-pdf-viewer/thumbnail";
 import { useLocation } from "react-router";
 import "@react-pdf-viewer/thumbnail/lib/styles/index.css";
-import { useEffect, useRef, useState } from "react";
+import React, { useEffect, useRef, useState } from "react";
 import { PDFDocument } from "pdf-lib";
 import Toolbar from "~/Components/Toolbar";
 
@@ -14,6 +14,7 @@ import {
   Line,
   Text,
   Image as KonvaImage,
+  Group,
 } from "react-konva";
 
 export default function Editor() {
@@ -25,12 +26,12 @@ export default function Editor() {
 
   const stageRef = useRef<any>(null);
 
-  // ✅ PER PAGE STATE
   const [pages, setPages] = useState<any[][]>([[]]);
   const [currentPage, setCurrentPage] = useState(0);
 
   const [tool, setTool] = useState<string | null>(null);
   const [isDrawing, setIsDrawing] = useState(false);
+  const [selectedIndex, setSelectedIndex] = useState<number | null>(null);
 
   useEffect(() => {
     if (fileUrl) return;
@@ -83,13 +84,40 @@ export default function Editor() {
     updateCurrentPage([...current.slice(0, -1), last]);
   };
 
-  const handleMouseUp = () => setIsDrawing(false);
+  const handleMouseUp = () => {
+    setIsDrawing(false);
+  };
+
+  const handleTextChange = (text: string) => {
+    if (selectedIndex !== null) {
+      updateElement(selectedIndex, { text });
+    }
+  };
+
+  const selectedText =
+    selectedIndex !== null && (pages[currentPage] || [])[selectedIndex]?.type === "text"
+      ? (pages[currentPage] || [])[selectedIndex].text
+      : null;
+
+  const updateElement = (index: number, updates: any) => {
+    const current = pages[currentPage] || [];
+    const updated = [...current];
+    updated[index] = { ...updated[index], ...updates };
+    updateCurrentPage(updated);
+  };
 
   const addText = () => {
     setTool("text");
     updateCurrentPage([
       ...(pages[currentPage] || []),
-      { type: "text", x: 100, y: 100, text: "Edit me", fontSize: 20 },
+      {
+        type: "text",
+        x: 100,
+        y: 100,
+        text: "Edit me",
+        fontSize: 20,
+        letterSpacing: 2,
+      },
     ]);
   };
 
@@ -220,18 +248,31 @@ export default function Editor() {
         onErase={eraseLast}
         onAddPage={addPage}
         onExport={exportPdf}
+        selectedText={selectedText}
+        onTextChange={handleTextChange}
+        selectedFontSize={
+          selectedIndex !== null &&
+            (pages[currentPage] || [])[selectedIndex]?.type === "text"
+            ? (pages[currentPage] || [])[selectedIndex].fontSize
+            : null
+        }
+        onFontSizeChange={(size: number) => {
+          if (selectedIndex !== null) {
+            updateElement(selectedIndex, { fontSize: size });
+          }
+        }}
       />
 
       <div className="pt-24 pb-12 px-4 md:px-8">
         <div className="max-w-7xl mx-auto">
           {fileUrl && (
             <Worker workerUrl="https://unpkg.com/pdfjs-dist@3.11.174/build/pdf.worker.min.js">
-              <div className="flex">
-                <div className="w-48 bg-white border-r p-2">
+              <div className="flex gap-4">
+                <div className="w-48 bg-white border-r p-2 h-fit">
                   <Thumbnails />
                 </div>
 
-                <div className="flex-1 relative ml-4">
+                <div className="flex-1 relative">
                   <Viewer
                     fileUrl={fileUrl}
                     plugins={[plugin]}
@@ -239,28 +280,111 @@ export default function Editor() {
                   />
 
                   <Stage
-                    key={currentPage} 
-                    width={800}
-                    height={1000}
+                    key={currentPage}
+                    width={595}
+                    height={842}
                     ref={stageRef}
                     className="absolute top-0 left-0 z-10"
                     onMouseDown={handleMouseDown}
-                    onMouseMove={handleMouseMove}  
-                    onMouseUp={handleMouseUp}     
+                    onMouseMove={handleMouseMove}
+                    onMouseUp={handleMouseUp}
                   >
                     <Layer>
                       {(pages[currentPage] || []).map((el, i) => {
                         switch (el.type) {
                           case "rect":
-                            return <Rect key={i} {...el} draggable />;
-                          case "circle":
-                            return <Circle key={i} {...el} draggable />;
-                          case "text":
-                            return <Text key={i} {...el} draggable />;
-                          case "line":
+                            return (
+                              <Rect
+                                key={i}
+                                {...el}
+                                draggable
+                                onClick={() => setSelectedIndex(i)}
+                                onDragEnd={(e) =>
+                                  updateElement(i, {
+                                    x: e.target.x(),
+                                    y: e.target.y(),
+                                  })
+                                }
+                              />
+                            );
+                          case "circle": {
+                            return (
+                              <Circle
+                                key={i}
+                                {...el}
+                                draggable
+                                onClick={() => setSelectedIndex(i)}
+                                onDragEnd={(e) =>
+                                  updateElement(i, {
+                                    x: e.target.x(),
+                                    y: e.target.y(),
+                                  })
+                                }
+                              />
+                            );
+                          }
+                          case "text": {
+                            const textChars = el.text.split("");
+
+                            const measureCanvas = document.createElement("canvas");
+                            const measureCtx = measureCanvas.getContext("2d");
+                            if (measureCtx) measureCtx.font = `${el.fontSize}px Arial`;
+
+                            let letterOffsetX = 0;
+
+                            return (
+                              <Group
+                                key={i}
+                                draggable
+                                onClick={() => setSelectedIndex(i)}
+                                onDragEnd={(e) =>
+                                  updateElement(i, {
+                                    x: e.target.x(),
+                                    y: e.target.y(),
+                                  })
+                                }
+                              >
+                                {textChars.map((char: string, idx: number) => {
+                                  const charWidth =
+                                    measureCtx?.measureText(char).width || el.fontSize * 0.6;
+
+                                  const charHeight = el.fontSize;
+
+                                  const x = letterOffsetX;
+                                  const y = 0;
+
+                                  letterOffsetX += charWidth;
+
+                                  return (
+                                    <React.Fragment key={idx}>
+                                      <Rect x={x} y={y} width={charWidth} height={charHeight} fill="white" />
+                                      <Text x={x} y={y} text={char} fontSize={el.fontSize} fill="black" />
+                                    </React.Fragment>
+                                  );
+                                })}
+                              </Group>
+                            );
+                          }
+
+                          case "line": {
                             return <Line key={i} {...el} />;
-                          case "image":
-                            return <KonvaImage key={i} {...el} draggable />;
+                          }
+                          case "image": {
+                            return (
+                              <KonvaImage
+                                key={i}
+                                {...el}
+                                draggable
+                                onClick={() => setSelectedIndex(i)}
+                                onDragEnd={(e) =>
+                                  updateElement(i, {
+                                    x: e.target.x(),
+                                    y: e.target.y(),
+                                  })
+                                }
+                              />
+                            );
+                          }
                           default:
                             return null;
                         }

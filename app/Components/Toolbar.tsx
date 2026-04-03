@@ -26,6 +26,13 @@ interface ToolbarProps {
   onErase: () => void;
   onAddPage: () => void | Promise<void>;
   onExport: () => void | Promise<void>;
+
+  selectedText: string | null;
+  onTextChange: (text: string) => void;
+
+  // ✅ NEW
+  selectedFontSize: number | null;
+  onFontSizeChange: (size: number) => void;
 }
 
 interface ToolButtonProps {
@@ -74,6 +81,10 @@ export default function Toolbar({
   onErase,
   onAddPage,
   onExport,
+  selectedText,
+  onTextChange,
+  selectedFontSize,
+  onFontSizeChange,
 }: ToolbarProps): JSX.Element {
   const [isShapesOpen, setIsShapesOpen] = useState(false);
 
@@ -84,7 +95,7 @@ export default function Toolbar({
           <ToolGroup>
             <ToolButton icon={Type} label="Text" onClick={onText} />
             <ToolButton icon={Pencil} label="Free Draw" onClick={onDraw} />
-
+            
             <div className="relative">
               <button
                 onClick={() => setIsShapesOpen(!isShapesOpen)}
@@ -118,7 +129,7 @@ export default function Toolbar({
                       onRect();
                       setIsShapesOpen(false);
                     }}
-                    className="flex items-center gap-3 w-full p-2 hover:bg-gray-100 rounded-lg text-sm text-gray-700 cursor-pointer"
+                    className="flex items-center gap-3 w-full p-2 hover:bg-gray-100 rounded-lg text-sm"
                   >
                     <Square size={16} /> Square
                   </button>
@@ -128,7 +139,7 @@ export default function Toolbar({
                       onCircle();
                       setIsShapesOpen(false);
                     }}
-                    className="flex items-center gap-3 w-full p-2 hover:bg-gray-100 rounded-lg text-sm text-gray-700 cursor-pointer"
+                    className="flex items-center gap-3 w-full p-2 hover:bg-gray-100 rounded-lg text-sm"
                   >
                     <FaRegCircle className="w-4 h-4" /> Circle
                   </button>
@@ -138,7 +149,7 @@ export default function Toolbar({
                       onTriangle();
                       setIsShapesOpen(false);
                     }}
-                    className="flex items-center gap-3 w-full p-2 hover:bg-gray-100 rounded-lg text-sm text-gray-700 cursor-pointer"
+                    className="flex items-center gap-3 w-full p-2 hover:bg-gray-100 rounded-lg text-sm"
                   >
                     <RiTriangleLine className="w-4 h-4" /> Triangle
                   </button>
@@ -148,7 +159,7 @@ export default function Toolbar({
                       onRect();
                       setIsShapesOpen(false);
                     }}
-                    className="flex items-center gap-3 w-full p-2 hover:bg-gray-100 rounded-lg text-sm text-gray-700 cursor-pointer"
+                    className="flex items-center gap-3 w-full p-2 hover:bg-gray-100 rounded-lg text-sm"
                   >
                     <Star size={16} /> Star
                   </button>
@@ -182,11 +193,34 @@ export default function Toolbar({
           </ToolGroup>
         </div>
 
+        {selectedText !== null && (
+          <div className="flex items-center gap-3 ml-4">
+            <input
+              type="text"
+              value={selectedText}
+              onChange={(e) => onTextChange(e.target.value)}
+              className="min-w-[180px] h-10 px-3 border border-gray-200 rounded-lg focus:outline-none focus:ring-2 focus:ring-blue-500 text-black bg-white"
+              placeholder="Edit text"
+            />
+
+            <input
+              type="number"
+              value={selectedFontSize || 20}
+              onChange={(e) => {
+                const value = Math.max(5, parseInt(e.target.value) || 10);
+                onFontSizeChange(value);
+              }}
+              className="w-20 h-10 px-2 border border-gray-200 rounded-lg focus:outline-none focus:ring-2 focus:ring-blue-500 text-black bg-white"
+              placeholder="Size"
+            />
+          </div>
+        )}
+
         <div className="flex items-center gap-4">
           <button
             type="button"
             onClick={onAddPage}
-            className="flex items-center gap-2 px-4 py-2 text-gray-600 hover:bg-gray-100 rounded-lg transition-colors font-medium text-sm cursor-pointer"
+            className="flex items-center gap-2 px-4 py-2 text-gray-600 hover:bg-gray-100 rounded-lg text-sm"
           >
             <PlusSquare size={18} />
             <span>Add Page</span>
@@ -195,7 +229,7 @@ export default function Toolbar({
           <button
             type="button"
             onClick={onExport}
-            className="flex items-center gap-2 bg-black text-white px-5 py-2.5 rounded-xl transition-all active:scale-95 shadow-md cursor-pointer hover:bg-gray-800"
+            className="flex items-center gap-2 bg-black text-white px-5 py-2.5 rounded-xl transition-all active:scale-95 shadow-md hover:bg-gray-800"
           >
             <Download size={18} />
             <span className="font-semibold text-sm">Export</span>
