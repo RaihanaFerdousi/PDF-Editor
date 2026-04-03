@@ -69,6 +69,24 @@ export default function Editor() {
     ]);
   };
 
+  const handleDoubleClick = (e: any) => {
+  if (tool !== "text") return; 
+
+  const pos = e.target.getStage().getPointerPosition();
+
+  updateCurrentPage([
+    ...(pages[currentPage] || []),
+    {
+      type: "text",
+      x: pos.x,
+      y: pos.y,
+      text: "Edit me",
+      fontSize: 20,
+      background: true, 
+    },
+  ]);
+};
+
   const handleMouseMove = (e: any) => {
     if (!isDrawing) return;
 
@@ -269,6 +287,7 @@ export default function Editor() {
                     onMouseDown={handleMouseDown}
                     onMouseMove={handleMouseMove}
                     onMouseUp={handleMouseUp}
+                    onDblClick={handleDoubleClick}
                   >
                     <Layer>
                       {(pages[currentPage] || []).map((el, i) => {
@@ -303,8 +322,19 @@ export default function Editor() {
                                 }
                               />
                             );
-                          case "text":
-                            return (
+                       case "text":
+                          return (
+                            <>
+                              {el.background && (
+                                <Rect
+                                  x={el.x}
+                                  y={el.y}
+                                  width={el.text.length * el.fontSize * 0.6}
+                                  height={el.fontSize + 4}
+                                  fill="white"
+                                />
+                              )}
+
                               <Text
                                 key={i}
                                 {...el}
@@ -317,7 +347,8 @@ export default function Editor() {
                                   })
                                 }
                               />
-                            );
+                            </>
+                          );
                           case "line":
                             return <Line key={i} {...el} />;
                           case "image":
@@ -342,115 +373,6 @@ export default function Editor() {
                     </Layer>
                   </Stage>
                 </div>
-
-                {selectedIndex !== null && (pages[currentPage] || [])[selectedIndex] && (
-                  <div className="w-56 bg-white border-l p-4 h-fit">
-                    <h3 className="font-bold text-sm mb-4">Properties</h3>
-                    {(() => {
-                      const el = (pages[currentPage] || [])[selectedIndex];
-                      if (!el) return null;
-
-                      if (el.type === "rect") {
-                        return (
-                          <div className="space-y-3 text-sm">
-                            <div>
-                              <label className="block text-gray-600 mb-1">
-                                Width
-                              </label>
-                              <input
-                                type="number"
-                                value={el.width || 100}
-                                onChange={(e) =>
-                                  updateElement(selectedIndex, {
-                                    width: parseInt(e.target.value),
-                                  })
-                                }
-                                className="w-full border rounded px-2 py-1"
-                              />
-                            </div>
-                            <div>
-                              <label className="block text-gray-600 mb-1">
-                                Height
-                              </label>
-                              <input
-                                type="number"
-                                value={el.height || 100}
-                                onChange={(e) =>
-                                  updateElement(selectedIndex, {
-                                    height: parseInt(e.target.value),
-                                  })
-                                }
-                                className="w-full border rounded px-2 py-1"
-                              />
-                            </div>
-                          </div>
-                        );
-                      } else if (el.type === "circle") {
-                        return (
-                          <div className="space-y-3 text-sm">
-                            <div>
-                              <label className="block text-gray-600 mb-1">
-                                Radius
-                              </label>
-                              <input
-                                type="number"
-                                value={el.radius || 50}
-                                onChange={(e) =>
-                                  updateElement(selectedIndex, {
-                                    radius: parseInt(e.target.value),
-                                  })
-                                }
-                                className="w-full border rounded px-2 py-1"
-                              />
-                            </div>
-                          </div>
-                        );
-                      } else if (el.type === "text") {
-                        return (
-                          <div className="space-y-3 text-sm">
-                            <p className="text-gray-600">Edit text in the toolbar above.</p>
-                          </div>
-                        );
-                      } else if (el.type === "image") {
-                        return (
-                          <div className="space-y-3 text-sm">
-                            <div>
-                              <label className="block text-gray-600 mb-1">
-                                Width
-                              </label>
-                              <input
-                                type="number"
-                                value={el.width || 150}
-                                onChange={(e) =>
-                                  updateElement(selectedIndex, {
-                                    width: parseInt(e.target.value),
-                                  })
-                                }
-                                className="w-full border rounded px-2 py-1"
-                              />
-                            </div>
-                            <div>
-                              <label className="block text-gray-600 mb-1">
-                                Height
-                              </label>
-                              <input
-                                type="number"
-                                value={el.height || 150}
-                                onChange={(e) =>
-                                  updateElement(selectedIndex, {
-                                    height: parseInt(e.target.value),
-                                  })
-                                }
-                                className="w-full border rounded px-2 py-1"
-                              />
-                            </div>
-                          </div>
-                        );
-                      }
-                      return null;
-                    })()}
-                  </div>
-                )}
               </div>
             </Worker>
           )}
