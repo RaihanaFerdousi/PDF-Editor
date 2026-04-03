@@ -31,6 +31,8 @@ export default function Editor() {
 
   const [tool, setTool] = useState<string | null>(null);
   const [isDrawing, setIsDrawing] = useState(false);
+  const [selectedIndex, setSelectedIndex] = useState<number | null>(null);
+  const [selectedElement, setSelectedElement] = useState<any>(null);
 
   useEffect(() => {
     if (fileUrl) return;
@@ -83,7 +85,27 @@ export default function Editor() {
     updateCurrentPage([...current.slice(0, -1), last]);
   };
 
-  const handleMouseUp = () => setIsDrawing(false);
+  const handleMouseUp = () => {
+    setIsDrawing(false);
+  };
+
+  const handleTextChange = (text: string) => {
+    if (selectedIndex !== null) {
+      updateElement(selectedIndex, { text });
+    }
+  };
+
+  const selectedText =
+    selectedIndex !== null && (pages[currentPage] || [])[selectedIndex]?.type === "text"
+      ? (pages[currentPage] || [])[selectedIndex].text
+      : null;
+
+  const updateElement = (index: number, updates: any) => {
+    const current = pages[currentPage] || [];
+    const updated = [...current];
+    updated[index] = { ...updated[index], ...updates };
+    updateCurrentPage(updated);
+  };
 
   const addText = () => {
     setTool("text");
@@ -220,18 +242,20 @@ export default function Editor() {
         onErase={eraseLast}
         onAddPage={addPage}
         onExport={exportPdf}
+        selectedText={selectedText}
+        onTextChange={handleTextChange}
       />
 
       <div className="pt-24 pb-12 px-4 md:px-8">
         <div className="max-w-7xl mx-auto">
           {fileUrl && (
             <Worker workerUrl="https://unpkg.com/pdfjs-dist@3.11.174/build/pdf.worker.min.js">
-              <div className="flex">
-                <div className="w-48 bg-white border-r p-2">
+              <div className="flex gap-4">
+                <div className="w-48 bg-white border-r p-2 h-fit">
                   <Thumbnails />
                 </div>
 
-                <div className="flex-1 relative ml-4">
+                <div className="flex-1 relative">
                   <Viewer
                     fileUrl={fileUrl}
                     plugins={[plugin]}
@@ -239,28 +263,80 @@ export default function Editor() {
                   />
 
                   <Stage
-                    key={currentPage} 
-                    width={800}
-                    height={1000}
+                    key={currentPage}
+                    width={595}
+                    height={842}
                     ref={stageRef}
                     className="absolute top-0 left-0 z-10"
                     onMouseDown={handleMouseDown}
-                    onMouseMove={handleMouseMove}  
-                    onMouseUp={handleMouseUp}     
+                    onMouseMove={handleMouseMove}
+                    onMouseUp={handleMouseUp}
                   >
                     <Layer>
                       {(pages[currentPage] || []).map((el, i) => {
                         switch (el.type) {
                           case "rect":
-                            return <Rect key={i} {...el} draggable />;
+                            return (
+                              <Rect
+                                key={i}
+                                {...el}
+                                draggable
+                                onClick={() => setSelectedIndex(i)}
+                                onDragEnd={(e) =>
+                                  updateElement(i, {
+                                    x: e.target.x(),
+                                    y: e.target.y(),
+                                  })
+                                }
+                              />
+                            );
                           case "circle":
-                            return <Circle key={i} {...el} draggable />;
+                            return (
+                              <Circle
+                                key={i}
+                                {...el}
+                                draggable
+                                onClick={() => setSelectedIndex(i)}
+                                onDragEnd={(e) =>
+                                  updateElement(i, {
+                                    x: e.target.x(),
+                                    y: e.target.y(),
+                                  })
+                                }
+                              />
+                            );
                           case "text":
-                            return <Text key={i} {...el} draggable />;
+                            return (
+                              <Text
+                                key={i}
+                                {...el}
+                                draggable
+                                onClick={() => setSelectedIndex(i)}
+                                onDragEnd={(e) =>
+                                  updateElement(i, {
+                                    x: e.target.x(),
+                                    y: e.target.y(),
+                                  })
+                                }
+                              />
+                            );
                           case "line":
                             return <Line key={i} {...el} />;
                           case "image":
-                            return <KonvaImage key={i} {...el} draggable />;
+                            return (
+                              <KonvaImage
+                                key={i}
+                                {...el}
+                                draggable
+                                onClick={() => setSelectedIndex(i)}
+                                onDragEnd={(e) =>
+                                  updateElement(i, {
+                                    x: e.target.x(),
+                                    y: e.target.y(),
+                                  })
+                                }
+                              />
+                            );
                           default:
                             return null;
                         }
@@ -268,6 +344,115 @@ export default function Editor() {
                     </Layer>
                   </Stage>
                 </div>
+
+                {selectedIndex !== null && (pages[currentPage] || [])[selectedIndex] && (
+                  <div className="w-56 bg-white border-l p-4 h-fit">
+                    <h3 className="font-bold text-sm mb-4">Properties</h3>
+                    {(() => {
+                      const el = (pages[currentPage] || [])[selectedIndex];
+                      if (!el) return null;
+
+                      if (el.type === "rect") {
+                        return (
+                          <div className="space-y-3 text-sm">
+                            <div>
+                              <label className="block text-gray-600 mb-1">
+                                Width
+                              </label>
+                              <input
+                                type="number"
+                                value={el.width || 100}
+                                onChange={(e) =>
+                                  updateElement(selectedIndex, {
+                                    width: parseInt(e.target.value),
+                                  })
+                                }
+                                className="w-full border rounded px-2 py-1"
+                              />
+                            </div>
+                            <div>
+                              <label className="block text-gray-600 mb-1">
+                                Height
+                              </label>
+                              <input
+                                type="number"
+                                value={el.height || 100}
+                                onChange={(e) =>
+                                  updateElement(selectedIndex, {
+                                    height: parseInt(e.target.value),
+                                  })
+                                }
+                                className="w-full border rounded px-2 py-1"
+                              />
+                            </div>
+                          </div>
+                        );
+                      } else if (el.type === "circle") {
+                        return (
+                          <div className="space-y-3 text-sm">
+                            <div>
+                              <label className="block text-gray-600 mb-1">
+                                Radius
+                              </label>
+                              <input
+                                type="number"
+                                value={el.radius || 50}
+                                onChange={(e) =>
+                                  updateElement(selectedIndex, {
+                                    radius: parseInt(e.target.value),
+                                  })
+                                }
+                                className="w-full border rounded px-2 py-1"
+                              />
+                            </div>
+                          </div>
+                        );
+                      } else if (el.type === "text") {
+                        return (
+                          <div className="space-y-3 text-sm">
+                            <p className="text-gray-600">Edit text in the toolbar above.</p>
+                          </div>
+                        );
+                      } else if (el.type === "image") {
+                        return (
+                          <div className="space-y-3 text-sm">
+                            <div>
+                              <label className="block text-gray-600 mb-1">
+                                Width
+                              </label>
+                              <input
+                                type="number"
+                                value={el.width || 150}
+                                onChange={(e) =>
+                                  updateElement(selectedIndex, {
+                                    width: parseInt(e.target.value),
+                                  })
+                                }
+                                className="w-full border rounded px-2 py-1"
+                              />
+                            </div>
+                            <div>
+                              <label className="block text-gray-600 mb-1">
+                                Height
+                              </label>
+                              <input
+                                type="number"
+                                value={el.height || 150}
+                                onChange={(e) =>
+                                  updateElement(selectedIndex, {
+                                    height: parseInt(e.target.value),
+                                  })
+                                }
+                                className="w-full border rounded px-2 py-1"
+                              />
+                            </div>
+                          </div>
+                        );
+                      }
+                      return null;
+                    })()}
+                  </div>
+                )}
               </div>
             </Worker>
           )}

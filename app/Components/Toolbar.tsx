@@ -26,6 +26,8 @@ interface ToolbarProps {
   onErase: () => void;
   onAddPage: () => void | Promise<void>;
   onExport: () => void | Promise<void>;
+  selectedText: string | null;
+  onTextChange: (text: string) => void;
 }
 
 interface ToolButtonProps {
@@ -74,6 +76,8 @@ export default function Toolbar({
   onErase,
   onAddPage,
   onExport,
+  selectedText,
+  onTextChange,
 }: ToolbarProps): JSX.Element {
   const [isShapesOpen, setIsShapesOpen] = useState(false);
 
@@ -181,6 +185,18 @@ export default function Toolbar({
             <ToolButton icon={Eraser} label="Eraser" onClick={onErase} />
           </ToolGroup>
         </div>
+
+        {selectedText !== null && (
+          <div className="ml-4">
+            <input
+              type="text"
+              value={selectedText}
+              onChange={(e) => onTextChange(e.target.value)}
+              className="min-w-[200px] h-10 px-3 border border-gray-200 rounded-lg focus:outline-none focus:ring-2 focus:ring-blue-500 text-black bg-white"
+              placeholder="Edit text"
+            />
+          </div>
+        )}
 
         <div className="flex items-center gap-4">
           <button
