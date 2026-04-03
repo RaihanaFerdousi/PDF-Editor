@@ -22,7 +22,7 @@ export function Welcome() {
         <div className="flex gap-6">
 
           <label className="font-hand px-8 py-1 border-3 border-black text-black rounded-xl cursor-pointer bg-transparent hover:bg-black hover:text-white transition">
-            Import PDF
+            Upload PDF
             <input
               type="file"
               accept="application/pdf"
