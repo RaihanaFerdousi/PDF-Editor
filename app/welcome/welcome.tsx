@@ -11,6 +11,7 @@ export function Welcome() {
     navigate('/editor', { state: { fileUrl: url } });
   };
 
+
   return (
     <main className="h-screen w-full flex items-center justify-center">
       <div className="flex flex-col items-center gap-10">
