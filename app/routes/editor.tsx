@@ -2,7 +2,7 @@ import { Viewer, Worker } from "@react-pdf-viewer/core";
 import { thumbnailPlugin } from "@react-pdf-viewer/thumbnail";
 import { useLocation } from "react-router";
 import "@react-pdf-viewer/thumbnail/lib/styles/index.css";
-import { useEffect, useRef, useState } from "react";
+import React, { useEffect, useRef, useState } from "react";
 import { PDFDocument } from "pdf-lib";
 import Toolbar from "~/Components/Toolbar";
 
@@ -14,6 +14,7 @@ import {
   Line,
   Text,
   Image as KonvaImage,
+  Group,
 } from "react-konva";
 
 export default function Editor() {
@@ -31,6 +32,7 @@ export default function Editor() {
   const [tool, setTool] = useState<string | null>(null);
   const [isDrawing, setIsDrawing] = useState(false);
   const [selectedIndex, setSelectedIndex] = useState<number | null>(null);
+  const [selectedElement, setSelectedElement] = useState<any>(null);
 
   useEffect(() => {
     if (fileUrl) return;
@@ -109,7 +111,14 @@ export default function Editor() {
     setTool("text");
     updateCurrentPage([
       ...(pages[currentPage] || []),
-      { type: "text", x: 100, y: 100, text: "Edit me", fontSize: 20 },
+      {
+        type: "text",
+        x: 100,
+        y: 100,
+        text: "Edit me",
+        fontSize: 20,
+        letterSpacing: 2,
+      },
     ]);
   };
 
@@ -242,6 +251,17 @@ export default function Editor() {
         onExport={exportPdf}
         selectedText={selectedText}
         onTextChange={handleTextChange}
+        selectedFontSize={
+          selectedIndex !== null &&
+            (pages[currentPage] || [])[selectedIndex]?.type === "text"
+            ? (pages[currentPage] || [])[selectedIndex].fontSize
+            : null
+        }
+        onFontSizeChange={(size: number) => {
+          if (selectedIndex !== null) {
+            updateElement(selectedIndex, { fontSize: size });
+          }
+        }}
       />
 
       <div className="pt-24 pb-12 px-4 md:px-8">
@@ -288,7 +308,7 @@ export default function Editor() {
                                 }
                               />
                             );
-                          case "circle":
+                          case "circle": {
                             return (
                               <Circle
                                 key={i}
@@ -303,11 +323,19 @@ export default function Editor() {
                                 }
                               />
                             );
-                          case "text":
+                          }
+                          case "text": {
+                            const textChars = el.text.split("");
+
+                            const measureCanvas = document.createElement("canvas");
+                            const measureCtx = measureCanvas.getContext("2d");
+                            if (measureCtx) measureCtx.font = `${el.fontSize}px Arial`;
+
+                            let letterOffsetX = 0;
+
                             return (
-                              <Text
+                              <Group
                                 key={i}
-                                {...el}
                                 draggable
                                 onClick={() => setSelectedIndex(i)}
                                 onDragEnd={(e) =>
@@ -316,11 +344,33 @@ export default function Editor() {
                                     y: e.target.y(),
                                   })
                                 }
-                              />
+                              >
+                                {textChars.map((char: string, idx: number) => {
+                                  const charWidth =
+                                    measureCtx?.measureText(char).width || el.fontSize * 0.6;
+
+                                  const charHeight = el.fontSize;
+
+                                  const x = letterOffsetX;
+                                  const y = 0;
+
+                                  letterOffsetX += charWidth;
+
+                                  return (
+                                    <React.Fragment key={idx}>
+                                      <Rect x={x} y={y} width={charWidth} height={charHeight} fill="white" />
+                                      <Text x={x} y={y} text={char} fontSize={el.fontSize} fill="black" />
+                                    </React.Fragment>
+                                  );
+                                })}
+                              </Group>
                             );
-                          case "line":
+                          }
+
+                          case "line": {
                             return <Line key={i} {...el} />;
-                          case "image":
+                          }
+                          case "image": {
                             return (
                               <KonvaImage
                                 key={i}
@@ -335,6 +385,7 @@ export default function Editor() {
                                 }
                               />
                             );
+                          }
                           default:
                             return null;
                         }
@@ -403,12 +454,6 @@ export default function Editor() {
                                 className="w-full border rounded px-2 py-1"
                               />
                             </div>
-                          </div>
-                        );
-                      } else if (el.type === "text") {
-                        return (
-                          <div className="space-y-3 text-sm">
-                            <p className="text-gray-600">Edit text in the toolbar above.</p>
                           </div>
                         );
                       } else if (el.type === "image") {
