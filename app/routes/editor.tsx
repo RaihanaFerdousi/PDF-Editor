@@ -6,6 +6,7 @@ import React, { useEffect, useRef, useState } from "react";
 import { PDFDocument } from "pdf-lib";
 import Toolbar from "~/Components/Toolbar";
 
+// ggjgjgkj
 import {
   Stage,
   Layer,
@@ -69,6 +70,24 @@ export default function Editor() {
       },
     ]);
   };
+
+  const handleDoubleClick = (e: any) => {
+  if (tool !== "text") return; 
+
+  const pos = e.target.getStage().getPointerPosition();
+
+  updateCurrentPage([
+    ...(pages[currentPage] || []),
+    {
+      type: "text",
+      x: pos.x,
+      y: pos.y,
+      text: "Edit me",
+      fontSize: 20,
+      background: true, 
+    },
+  ]);
+};
 
   const handleMouseMove = (e: any) => {
     if (!isDrawing) return;
@@ -288,6 +307,7 @@ export default function Editor() {
                     onMouseDown={handleMouseDown}
                     onMouseMove={handleMouseMove}
                     onMouseUp={handleMouseUp}
+                    onDblClick={handleDoubleClick}
                   >
                     <Layer>
                       {(pages[currentPage] || []).map((el, i) => {
@@ -322,6 +342,20 @@ export default function Editor() {
                                 }
                               />
                             );
+                       case "text":
+                          return (
+                            <>
+                              {el.background && (
+                                <Rect
+                                  x={el.x}
+                                  y={el.y}
+                                  width={el.text.length * el.fontSize * 0.6}
+                                  height={el.fontSize + 4}
+                                  fill="white"
+                                />
+                              )}
+
+                              <Text
                           }
                           case "text": {
                             const textChars = el.text.split("");
@@ -343,6 +377,10 @@ export default function Editor() {
                                     y: e.target.y(),
                                   })
                                 }
+                              />
+                            </>
+                          );
+                          case "line":
                               >
                                 {textChars.map((char: string, idx: number) => {
                                   const charWidth =

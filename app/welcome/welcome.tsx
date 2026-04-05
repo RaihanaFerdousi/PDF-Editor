@@ -3,14 +3,30 @@ import { useNavigate } from "react-router";
 export function Welcome() {
   const navigate = useNavigate();
 
-  const handleImport = (e: React.ChangeEvent<HTMLInputElement>) => {
-    const file = e.target.files?.[0];
-    if (!file) return;
+const handleImport = async (e: React.ChangeEvent<HTMLInputElement>) => {
+  const file = e.target.files?.[0];
+  if (!file) return;
 
-    const url = URL.createObjectURL(file);
-    navigate('/editor', { state: { fileUrl: url } });
-  };
+  const formData = new FormData();
+  formData.append("pdf", file);
 
+  try {
+      const response = await fetch("http://localhost:3000/upload", {
+      method: "POST",
+      body: formData,
+    });
+
+    if (!response.ok) throw new Error("Upload failed");
+
+    const data = await response.json();
+    const htmlPath = data.htmlPath;
+    navigate("/editor", { state: { htmlPath } });
+
+  } catch (err) {
+    console.error("Error uploading PDF:", err);
+    alert("Failed to upload Pdf");
+  }
+};
 
   return (
     <main className="h-screen w-full flex items-center justify-center">
