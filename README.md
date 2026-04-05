@@ -1,7 +1,7 @@
 # Welcome to React Router!
 
 A modern, production-ready template for building full-stack React applications using React Router.
-[Screencast From 2026-04-05 19-53-06.webm](https://github.com/user-attachments/assets/fe3d6d2f-29f7-4cd5-a934-ce41fccca625)
+[PDF Editor Demo](https://github.com/user-attachments/assets/fe3d6d2f-29f7-4cd5-a934-ce41fccca625)
 
 [![Open in StackBlitz](https://developer.stackblitz.com/img/open_in_stackblitz.svg)](https://stackblitz.com/github/remix-run/react-router-templates/tree/main/default)
 
