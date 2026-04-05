@@ -1,6 +1,4 @@
-import React, { useState, type JSX } from "react";
-import { RiTriangleLine } from "react-icons/ri";
-import { FaRegCircle } from "react-icons/fa";
+import React, { useState } from "react";
 import {
   Type,
   Pencil,
@@ -13,28 +11,13 @@ import {
   Square,
   Star,
   ChevronDown,
-  type LucideIcon,
 } from "lucide-react";
+import { RiTriangleLine } from "react-icons/ri";
+import { FaRegCircle } from "react-icons/fa";
 
 interface ToolbarProps {
-  onText: () => void;
-  onDraw: () => void;
-  onRect: () => void;
-  onCircle: () => void;
-  onTriangle: () => void;
-  onImageUpload: (file: File) => void;
-  onErase: () => void;
-  onAddPage: () => void | Promise<void>;
-  onExport: () => void | Promise<void>;
-  selectedText: string | null;
-  onTextChange: (text: string) => void;
-}
-
-interface ToolButtonProps {
-  icon: LucideIcon | React.ElementType;
-  label: string;
-  isActive?: boolean;
-  onClick?: () => void;
+  onAddPage?: () => void;
+  onExport?: () => void;
 }
 
 const ToolGroup: React.FC<{ children: React.ReactNode }> = ({ children }) => (
@@ -43,66 +26,114 @@ const ToolGroup: React.FC<{ children: React.ReactNode }> = ({ children }) => (
   </div>
 );
 
-const ToolButton: React.FC<ToolButtonProps> = ({
-  icon: Icon,
-  label,
-  isActive = false,
-  onClick,
-}) => (
+const ToolButton = ({ icon: Icon, label, onClick }: any) => (
   <button
     type="button"
     onClick={onClick}
-    className={`
-      flex flex-col items-center justify-center min-w-[72px] h-16 rounded-lg transition-all cursor-pointer
-      ${
-        isActive
-          ? "bg-blue-50 text-blue-600"
-          : "text-gray-500 hover:bg-gray-100 hover:text-gray-900"
-      }
-    `}
+    className="flex flex-col items-center justify-center min-w-[72px] h-16 rounded-lg text-gray-500 hover:bg-gray-100 hover:text-gray-900"
   >
-    <Icon size={20} strokeWidth={2} />
+    <Icon size={20} />
     <span className="text-[11px] font-medium mt-1.5">{label}</span>
   </button>
 );
 
-export default function Toolbar({
-  onText,
-  onDraw,
-  onRect,
-  onCircle,
-  onTriangle,
-  onImageUpload,
-  onErase,
-  onAddPage,
-  onExport,
-  selectedText,
-  onTextChange,
-}: ToolbarProps): JSX.Element {
+export default function Toolbar({ onAddPage, onExport }: ToolbarProps) {
   const [isShapesOpen, setIsShapesOpen] = useState(false);
+
+
+  const enableTextEdit = () => {
+    document.querySelectorAll(".pdf-html span").forEach((el) => {
+      (el as HTMLElement).contentEditable = "true";
+    });
+  };
+
+  const createShape = (styles: Partial<CSSStyleDeclaration>) => {
+    const layer = document.getElementById("draw-layer");
+    if (!layer) return;
+
+    const el = document.createElement("div");
+    el.style.position = "absolute";
+    el.style.left = "100px";
+    el.style.top = "100px";
+    el.style.cursor = "move";
+
+    Object.assign(el.style, styles);
+
+    el.onmousedown = (e) => {
+      e.preventDefault();
+      const shiftX = e.clientX - el.getBoundingClientRect().left;
+      const shiftY = e.clientY - el.getBoundingClientRect().top;
+
+      const move = (e: MouseEvent) => {
+        el.style.left = e.pageX - shiftX + "px";
+        el.style.top = e.pageY - shiftY + "px";
+      };
+
+      document.addEventListener("mousemove", move);
+      document.onmouseup = () => {
+        document.removeEventListener("mousemove", move);
+      };
+    };
+
+    layer.appendChild(el);
+  };
+
+  const addRectangle = () => {
+    createShape({
+      width: "100px",
+      height: "100px",
+      background: "rgba(0,0,255,0.3)",
+      border: "2px solid blue",
+    });
+  };
+
+  const addCircle = () => {
+    createShape({
+      width: "100px",
+      height: "100px",
+      background: "rgba(0,255,0,0.3)",
+      borderRadius: "50%",
+      border: "2px solid green",
+    });
+  };
+
+  const addTriangle = () => {
+    const layer = document.getElementById("draw-layer");
+    if (!layer) return;
+
+    const triangle = document.createElement("div");
+    triangle.style.position = "absolute";
+    triangle.style.left = "100px";
+    triangle.style.top = "100px";
+    triangle.style.width = "0";
+    triangle.style.height = "0";
+    triangle.style.borderLeft = "50px solid transparent";
+    triangle.style.borderRight = "50px solid transparent";
+    triangle.style.borderBottom = "100px solid purple";
+    triangle.style.cursor = "move";
+
+    layer.appendChild(triangle);
+  };
 
   return (
     <nav className="fixed top-0 left-0 w-full bg-white border-b border-gray-200 shadow-sm z-50 select-none">
       <div className="flex items-center justify-between px-6 h-20">
         <div className="flex items-center">
           <ToolGroup>
-            <ToolButton icon={Type} label="Text" onClick={onText} />
-            <ToolButton icon={Pencil} label="Free Draw" onClick={onDraw} />
+            <ToolButton icon={Type} label="Text" onClick={enableTextEdit} />
+            <ToolButton icon={Pencil} label="Free Draw" />
 
             <div className="relative">
               <button
                 onClick={() => setIsShapesOpen(!isShapesOpen)}
-                className={`
-                  flex flex-col items-center justify-center min-w-[72px] h-16 rounded-lg transition-all cursor-pointer
-                  ${
-                    isShapesOpen
-                      ? "bg-blue-50 text-blue-600"
-                      : "text-gray-500 hover:bg-gray-100"
-                  }
-                `}
+                className={`flex flex-col items-center justify-center min-w-[72px] h-16 rounded-lg ${
+                  isShapesOpen
+                    ? "bg-blue-50 text-blue-600"
+                    : "text-gray-500 hover:bg-gray-100"
+                }`}
               >
                 <div className="flex items-center gap-0.5">
-                  <Shapes size={20} strokeWidth={2} />
+                  <Shapes size={20} />
                   <ChevronDown
                     size={12}
                     className={`transition-transform ${
@@ -110,50 +141,24 @@ export default function Toolbar({
                     }`}
                   />
                 </div>
-                <span className="text-[11px] font-medium mt-1.5">
-                  Shapes
-                </span>
+                <span className="text-[11px] mt-1.5">Shapes</span>
               </button>
 
               {isShapesOpen && (
-                <div className="absolute top-full mt-2 left-0 w-40 bg-white border border-gray-200 rounded-xl shadow-xl p-2 z-50">
-                  <button
-                    onClick={() => {
-                      onRect();
-                      setIsShapesOpen(false);
-                    }}
-                    className="flex items-center gap-3 w-full p-2 hover:bg-gray-100 rounded-lg text-sm text-gray-700 cursor-pointer"
-                  >
+                <div className="absolute top-full mt-2 left-0 w-40 bg-white border rounded-xl shadow-xl p-2 z-50">
+                  <button onClick={addRectangle} className="btn">
                     <Square size={16} /> Square
                   </button>
 
-                  <button
-                    onClick={() => {
-                      onCircle();
-                      setIsShapesOpen(false);
-                    }}
-                    className="flex items-center gap-3 w-full p-2 hover:bg-gray-100 rounded-lg text-sm text-gray-700 cursor-pointer"
-                  >
+                  <button onClick={addCircle} className="btn">
                     <FaRegCircle className="w-4 h-4" /> Circle
                   </button>
 
-                  <button
-                    onClick={() => {
-                      onTriangle();
-                      setIsShapesOpen(false);
-                    }}
-                    className="flex items-center gap-3 w-full p-2 hover:bg-gray-100 rounded-lg text-sm text-gray-700 cursor-pointer"
-                  >
+                  <button onClick={addTriangle} className="btn">
                     <RiTriangleLine className="w-4 h-4" /> Triangle
                   </button>
 
-                  <button
-                    onClick={() => {
-                      onRect();
-                      setIsShapesOpen(false);
-                    }}
-                    className="flex items-center gap-3 w-full p-2 hover:bg-gray-100 rounded-lg text-sm text-gray-700 cursor-pointer"
-                  >
+                  <button onClick={addRectangle} className="btn">
                     <Star size={16} /> Star
                   </button>
                 </div>
@@ -161,60 +166,35 @@ export default function Toolbar({
             </div>
 
             <label className="cursor-pointer">
-              <div className="flex flex-col items-center justify-center min-w-[72px] h-16 rounded-lg text-gray-500 hover:bg-gray-100 hover:text-gray-900">
+              <div className="flex flex-col items-center justify-center min-w-[72px] h-16 rounded-lg text-gray-500 hover:bg-gray-100">
                 <ImagePlus size={20} />
-                <span className="text-[11px] font-medium mt-1.5">
-                  Img upload
-                </span>
+                <span className="text-[11px] mt-1.5">Img upload</span>
               </div>
-              <input
-                type="file"
-                accept="image/*"
-                className="hidden"
-                onChange={(e) => {
-                  if (e.target.files?.[0]) {
-                    onImageUpload(e.target.files[0]);
-                  }
-                }}
-              />
+              <input type="file" accept="image/*" className="hidden" />
             </label>
           </ToolGroup>
 
           <ToolGroup>
             <ToolButton icon={Palette} label="Color" />
-            <ToolButton icon={Eraser} label="Eraser" onClick={onErase} />
+            <ToolButton icon={Eraser} label="Eraser" />
           </ToolGroup>
         </div>
 
-        {selectedText !== null && (
-          <div className="ml-4">
-            <input
-              type="text"
-              value={selectedText}
-              onChange={(e) => onTextChange(e.target.value)}
-              className="min-w-[200px] h-10 px-3 border border-gray-200 rounded-lg focus:outline-none focus:ring-2 focus:ring-blue-500 text-black bg-white"
-              placeholder="Edit text"
-            />
-          </div>
-        )}
-
         <div className="flex items-center gap-4">
           <button
-            type="button"
             onClick={onAddPage}
-            className="flex items-center gap-2 px-4 py-2 text-gray-600 hover:bg-gray-100 rounded-lg transition-colors font-medium text-sm cursor-pointer"
+            className="flex items-center gap-2 px-4 py-2 text-gray-600 hover:bg-gray-100 rounded-lg text-sm"
           >
             <PlusSquare size={18} />
-            <span>Add Page</span>
+            Add Page
           </button>
 
           <button
-            type="button"
             onClick={onExport}
-            className="flex items-center gap-2 bg-black text-white px-5 py-2.5 rounded-xl transition-all active:scale-95 shadow-md cursor-pointer hover:bg-gray-800"
+            className="flex items-center gap-2 bg-black text-white px-5 py-2.5 rounded-xl hover:bg-gray-800"
           >
             <Download size={18} />
-            <span className="font-semibold text-sm">Export</span>
+            Export
           </button>
         </div>
       </div>
