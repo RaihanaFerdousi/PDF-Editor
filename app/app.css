@@ -7,16 +7,11 @@
 
 html,
 body {
-  @apply bg-white dark:bg-gray-100;
-
-  @media (prefers-color-scheme: dark) {
-    color-scheme: dark;
-    font-family: "Patrick Hand", cursive;
-  }
+  background-color: white;
+  color: black;
+  font-family: "Patrick Hand", cursive;
 }
-
 
 .rpv-core__viewer .rpv-core__page {
   margin-bottom: 20px;
 }
-

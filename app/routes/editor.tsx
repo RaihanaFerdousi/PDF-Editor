@@ -10,6 +10,31 @@ export default function Editor() {
     const frameDoc = frame.contentDocument || frame.contentWindow?.document;
 
     if (frameDoc) {
+      const style = frameDoc.createElement('style');
+      style.innerHTML = `
+      #sidebar, body, html { 
+        background-color: #121212 !important; 
+        background-image: none !important; 
+        border: none !important;
+      }
+
+      #page-container {
+        background-color: #121212 !important; 
+        background-image: none !important;
+      }
+
+      .pc { 
+        background-color: #1e1e1e !important; 
+        border: 1px solid #333 !important;
+        box-shadow: 0 4px 15px rgba(43, 29, 29, 0.5) !important;
+      }
+
+      .t { 
+        color: #1a1a1a !important; 
+      }
+    `;
+      frameDoc.head.appendChild(style);
+
       const textContainer = frameDoc.getElementById('page-container');
       if (textContainer) {
         textContainer.style.zIndex = "100";
@@ -23,17 +48,17 @@ export default function Editor() {
 
       const textBlocks = frameDoc.querySelectorAll('.t');
       textBlocks.forEach((el) => {
-      const htmlEl = el as HTMLElement;
-      htmlEl.contentEditable = "true";
-      htmlEl.style.pointerEvents = "auto";
-      htmlEl.style.userSelect = "text";
-      htmlEl.style.cursor = "text";
+        const htmlEl = el as HTMLElement;
+        htmlEl.contentEditable = "true";
+        htmlEl.style.pointerEvents = "auto";
+        htmlEl.style.userSelect = "text";
+        htmlEl.style.cursor = "text";
       });
     }
   };
 
   return (
-    <div className="min-h-screen bg-gray-100 flex flex-col">
+    <div className=" flex flex-col">
       <Toolbar />
       <div className="pt-24 flex-1 flex justify-center p-4">
         {htmlUrl && (
@@ -41,7 +66,7 @@ export default function Editor() {
             src={htmlUrl}
             onLoad={makeTextEditable}
             sandbox="allow-same-origin allow-scripts"
-            className="w-full max-w-5xl bg-white shadow-2xl rounded-lg"
+            className="w-full max-w-3xl bg-white rounded-lg"
             style={{ height: "85vh", border: "none" }}
           />
         )}
