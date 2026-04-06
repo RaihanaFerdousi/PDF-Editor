@@ -1,50 +1,53 @@
-import { useEffect, useState } from "react";
 import { useLocation } from "react-router";
 import Toolbar from "../Components/Toolbar";
 
 export default function Editor() {
   const location = useLocation();
-  const [pdfHtml, setPdfHtml] = useState<string>("");
+  const htmlUrl = location.state?.htmlUrl;
 
-  useEffect(() => {
-    const fetchHtml = async () => {
-      const fileUrl = location.state?.fileUrl;
-      if (!fileUrl) return;
+  const makeTextEditable = (e: React.SyntheticEvent<HTMLIFrameElement>) => {
+    const frame = e.currentTarget;
+    const frameDoc = frame.contentDocument || frame.contentWindow?.document;
 
-      const formData = new FormData();
-      const blob = await fetch(fileUrl).then(res => res.blob());
-      formData.append("file", blob);
+    if (frameDoc) {
+      const textContainer = frameDoc.getElementById('page-container');
+      if (textContainer) {
+        textContainer.style.zIndex = "100";
+        textContainer.style.position = "relative";
+      }
 
-      const res = await fetch("http://localhost:3000/upload", {
-        method: "POST",
-        body: formData,
+      const backgroundLayers = frameDoc.querySelectorAll('.bi');
+      backgroundLayers.forEach(layer => {
+        (layer as HTMLElement).style.pointerEvents = "none";
       });
 
-      const html = await res.text();
-      setPdfHtml(html);
-    };
-
-    fetchHtml();
-  }, [location.state]);
+      const textBlocks = frameDoc.querySelectorAll('.t');
+      textBlocks.forEach((el) => {
+      const htmlEl = el as HTMLElement;
+      htmlEl.contentEditable = "true";
+      htmlEl.style.pointerEvents = "auto";
+      htmlEl.style.userSelect = "text";
+      htmlEl.style.cursor = "text";
+      });
+    }
+  };
 
   return (
-    <div className="min-h-screen bg-gray-100">
+    <div className="min-h-screen bg-gray-100 flex flex-col">
       <Toolbar />
-
-      <div className="pt-24 flex justify-center">
-        <div className="relative bg-white shadow-lg">
-          <div
-            className="pdf-html"
-            dangerouslySetInnerHTML={{ __html: pdfHtml }}
+      <div className="pt-24 flex-1 flex justify-center p-4">
+        {htmlUrl && (
+          <iframe
+            src={htmlUrl}
+            onLoad={makeTextEditable}
+            sandbox="allow-same-origin allow-scripts"
+            className="w-full max-w-5xl bg-white shadow-2xl rounded-lg"
+            style={{ height: "85vh", border: "none" }}
           />
-
-          <div
-            className="absolute top-0 left-0 w-full h-full pointer-events-none"
-            id="draw-layer"
-          />
-
-        </div>
+        )}
       </div>
     </div>
   );
 }
+
+
