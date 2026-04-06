@@ -2,6 +2,7 @@ import { useNavigate } from "react-router";
 
 export function Welcome() {
   const navigate = useNavigate();
+  
   const handleImport = async (e: React.ChangeEvent<HTMLInputElement>) => {
     const file = e.target.files?.[0];
     if (!file) return;

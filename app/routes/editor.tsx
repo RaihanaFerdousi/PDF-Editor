@@ -12,67 +12,77 @@ export default function Editor() {
     if (frameDoc) {
       const style = frameDoc.createElement('style');
       style.innerHTML = `
-      #sidebar, body, html { 
-        background-color: #121212 !important; 
-        background-image: none !important; 
-        border: none !important;
-      }
+        #sidebar { display: none !important; width: 0 !important; }
+        
+        body, html, #page-container { 
+          background-color: #121212 !important; 
+          background-image: none !important; 
+          margin: 0 !important; 
+          padding: 0 !important;
+          overflow-x: hidden !important;
+        }
 
-      #page-container {
-        background-color: #121212 !important; 
-        background-image: none !important;
-      }
+        #page-container {
+          position: static !important;
+          margin: 0 auto !important;
+          display: flex !important;
+          flex-direction: column !important;
+          align-items: center !important;
+          min-width: 100% !important;
+          padding: 10px 0 100px 0 !important;
+        }
 
-      .pc { 
-        background-color: #1e1e1e !important; 
-        border: 1px solid #333 !important;
-        box-shadow: 0 4px 15px rgba(43, 29, 29, 0.5) !important;
-      }
+        .pf { 
+          background-color: #121212 !important;
+          box-shadow: none !important;
+          margin-bottom: 8px !important;
+          position: relative !important; 
+          display: block !important;
+        }
 
-      .t { 
-        color: #1a1a1a !important; 
-      }
-    `;
+        .pc { 
+          background-color: white !important; 
+          box-shadow: 0 10px 30px rgba(0,0,0,0.5) !important; 
+          outline: none !important;
+          margin: 0 auto !important; 
+        }
+
+        .t { color: #1a1a1a !important; }
+      `;
       frameDoc.head.appendChild(style);
 
-      const textContainer = frameDoc.getElementById('page-container');
-      if (textContainer) {
-        textContainer.style.zIndex = "100";
-        textContainer.style.position = "relative";
-      }
-
-      const backgroundLayers = frameDoc.querySelectorAll('.bi');
-      backgroundLayers.forEach(layer => {
-        (layer as HTMLElement).style.pointerEvents = "none";
-      });
-
-      const textBlocks = frameDoc.querySelectorAll('.t');
-      textBlocks.forEach((el) => {
-        const htmlEl = el as HTMLElement;
-        htmlEl.contentEditable = "true";
-        htmlEl.style.pointerEvents = "auto";
-        htmlEl.style.userSelect = "text";
-        htmlEl.style.cursor = "text";
+      frameDoc.querySelectorAll('.t').forEach((el) => {
+        (el as HTMLElement).contentEditable = "true";
       });
     }
   };
 
   return (
-    <div className=" flex flex-col">
+    <div className="flex flex-col min-h-screen bgblack overflow-hidden">
       <Toolbar />
-      <div className="pt-24 flex-1 flex justify-center p-4">
-        {htmlUrl && (
+      <div className="pt-24 flex-1 flex justify-center p-4 overflow-hidden">
+
+        {htmlUrl ? (
           <iframe
             src={htmlUrl}
             onLoad={makeTextEditable}
-            sandbox="allow-same-origin allow-scripts"
-            className="w-full max-w-3xl bg-white rounded-lg"
-            style={{ height: "85vh", border: "none" }}
+            className="w-full bg-black border-none rounded-lg overflow-hidden mb-5 h-[85vh]"
           />
+        ) : (
+          <div
+            className="w-full bg-[#121212] overflow-y-auto overflow-x-hidden rounded-lg flex flex-col h-[85vh] items-center"
+          >
+            <div
+              contentEditable
+              className="mx-auto w-[600px] bg-white p-20 min-h-[850px] shadow-2xl mb-5 outline-none text-black"
+            >
+              <h1 className="text-3xl font-bold mb-4">New PDF</h1>
+              <p>Type here...</p>
+            </div>
+          </div>
         )}
+
       </div>
     </div>
   );
 }
-
-
